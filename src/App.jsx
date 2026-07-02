@@ -8,6 +8,7 @@ import Konsultasi from "./pages/Konsultasi";
 import Kuesioner from "./pages/Kuesioner";
 import Hasil from "./pages/Hasil";
 import Placeholder from "./pages/Placeholder";
+import Processing from "./pages/Processing";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
               <Route path="/beranda" element={<Dashboard />} />
               <Route path="/konsultasi" element={<Konsultasi />} />
               <Route path="/kuesioner" element={<Kuesioner />} />
+              <Route path="/processing" element={<Processing />} />
               <Route path="/hasil" element={<Hasil />} />
 
               {/* Di luar scope (dikerjakan rekan tim lain) */}

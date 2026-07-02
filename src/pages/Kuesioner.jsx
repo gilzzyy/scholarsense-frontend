@@ -35,7 +35,7 @@ export default function Kuesioner() {
       // TODO (integrasi): ganti runInference() dengan POST ke /api/konsultasi
       // Lihat komentar di inferenceEngine.js untuk detail payload & response.
       const hasil = runInference(faktaBaru);
-      navigate("/hasil", { state: { hasil, jawaban: faktaBaru } });
+      navigate("/processing", { state: { hasil, jawaban: faktaBaru } });
     }
   };
 

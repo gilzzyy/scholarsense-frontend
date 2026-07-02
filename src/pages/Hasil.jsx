@@ -1,223 +1,170 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Trophy,
-  AlertTriangle,
-  AlertCircle,
-  Info,
-  Star,
-  RotateCcw,
-  Home,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, Bot } from "lucide-react";
 import StatusBar from "../components/StatusBar";
 import BottomNav from "../components/BottomNav";
+import { TIPS } from "../utils/inferenceEngine";
 
-// Konfigurasi tampilan per urgensi
-const URGENSI_CFG = {
-  apresiasi: {
-    bg: "bg-yellow-50",
-    border: "border-yellow-300",
-    badge: "bg-yellow-100 text-yellow-800",
-    icon: Trophy,
-    iconColor: "text-yellow-500",
-    label: "Apresiasi Positif",
-  },
-  positif: {
-    bg: "bg-green-50",
-    border: "border-green-200",
-    badge: "bg-green-100 text-green-800",
-    icon: Star,
-    iconColor: "text-primary-600",
-    label: "Positif",
-  },
-  sedang: {
-    bg: "bg-orange-50",
-    border: "border-orange-200",
-    badge: "bg-orange-100 text-orange-700",
-    icon: Info,
-    iconColor: "text-orange-500",
-    label: "Perlu Perhatian",
-  },
-  tinggi: {
-    bg: "bg-red-50",
-    border: "border-red-200",
-    badge: "bg-red-100 text-red-700",
-    icon: AlertTriangle,
-    iconColor: "text-red-500",
-    label: "Urgensi Tinggi",
-  },
-  kritis: {
-    bg: "bg-red-100",
-    border: "border-red-400",
-    badge: "bg-red-600 text-white",
-    icon: AlertCircle,
-    iconColor: "text-red-600",
-    label: "⚠ KRITIS",
-  },
-};
-
-// Hitung skor dari jawaban (berapa % yang Ya)
 function hitungSkor(jawaban) {
   const entries = Object.values(jawaban);
   if (!entries.length) return 0;
-  const ya = entries.filter(Boolean).length;
-  return Math.round((ya / entries.length) * 100);
+  return Math.round((entries.filter(Boolean).length / entries.length) * 100);
 }
 
-// Warna ring skor
+function skorLabel(skor) {
+  if (skor >= 85) return "SANGAT BAIK";
+  if (skor >= 70) return "BAIK";
+  if (skor >= 55) return "CUKUP";
+  return "PERLU PERHATIAN";
+}
+
 function skorWarna(skor) {
-  if (skor >= 80) return "#176236";
-  if (skor >= 60) return "#f59e0b";
+  if (skor >= 70) return "#176236";
+  if (skor >= 55) return "#f59e0b";
   return "#ef4444";
 }
 
+// Deskripsi singkat per profil untuk ditampilkan di bawah nama profil
+const DESKRIPSI = {
+  P1:  "Kemampuan Anda dalam mengelola prioritas akademik berada di atas rata-rata kelompok studi.",
+  P2:  "Anda menunjukkan integritas tinggi dalam seluruh aspek kehidupan akademik di kampus.",
+  P3:  "Kemampuan berkomunikasi dan bekerja sama Anda menjadi aset berharga dalam tim.",
+  P4:  "Anda berhasil menyeimbangkan kemandirian belajar dengan keaktifan berorganisasi.",
+  P5:  "Terdapat beberapa aspek perilaku akademik yang perlu mendapat perhatian segera.",
+  P6:  "Keaktifan organisasi Anda berpotensi mengganggu performa akademik jika tidak dikelola.",
+  P7:  "Tercatat adanya riwayat pelanggaran yang perlu diselesaikan bersama pihak kampus.",
+  P8:  "Anda sedang mengalami kendala penyesuaian yang memerlukan dukungan dari lingkungan kampus.",
+  P9:  "Kondisi studi Anda saat ini memerlukan intervensi segera dari pihak akademik.",
+  P10: "Anda adalah representasi mahasiswa berkarakter unggul yang dibanggakan kampus.",
+};
+
 export default function Hasil() {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
   const { state } = useLocation();
 
-  // Guard: kalau user langsung buka URL tanpa lewat kuesioner
   if (!state?.hasil) {
     navigate("/konsultasi");
     return null;
   }
 
   const { hasil, jawaban } = state;
-  const skor = hitungSkor(jawaban);
+  const skor        = hitungSkor(jawaban);
   const profilUtama = hasil[0];
-  const cfg = URGENSI_CFG[profilUtama.urgensi] || URGENSI_CFG.sedang;
-  const IconUtama = cfg.icon;
+  const warna       = skorWarna(skor);
+  const tips        = TIPS[profilUtama.kode] || TIPS.P8;
+
+  // SVG ring
+  const R          = 72;
+  const keliling   = 2 * Math.PI * R;
+  const dashOffset = keliling * (1 - skor / 100);
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      <div className="bg-white">
-        <StatusBar />
-        <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
-          <button onClick={() => navigate("/konsultasi")} className="text-primary-700">
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="font-bold text-primary-700 flex-1">Hasil Evaluasi</h1>
-        </div>
+    <div className="flex flex-col h-full bg-white">
+      <StatusBar />
+
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
+        <button onClick={() => navigate("/konsultasi")} className="text-primary-700">
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="font-bold text-primary-700">Hasil Analisis</h1>
       </div>
 
-      <div className="screen-scroll px-5 pb-8">
-        {/* Skor ringkas */}
-        <div className="bg-primary-700 rounded-2xl mx-0 mt-5 px-6 py-6 flex items-center gap-5 shadow-card fade-in">
-          <div className="relative w-20 h-20 shrink-0">
-            <svg width="80" height="80" viewBox="0 0 80 80">
-              <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="8" />
+      <div className="screen-scroll px-5 pb-6">
+        {/* Lingkaran skor */}
+        <div className="flex justify-center mt-7 mb-5">
+          <div className="relative w-44 h-44">
+            <svg width="176" height="176" viewBox="0 0 176 176">
+              {/* Track */}
+              <circle cx="88" cy="88" r={R} fill="none" stroke="#e5e7eb" strokeWidth="14" />
+              {/* Progress */}
               <circle
-                cx="40" cy="40" r="34" fill="none"
-                stroke={skor >= 80 ? "#86efac" : skor >= 60 ? "#fcd34d" : "#fca5a5"}
-                strokeWidth="8"
+                cx="88" cy="88" r={R}
+                fill="none"
+                stroke={warna}
+                strokeWidth="14"
                 strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 34}`}
-                strokeDashoffset={`${2 * Math.PI * 34 * (1 - skor / 100)}`}
-                transform="rotate(-90 40 40)"
-                style={{ transition: "stroke-dashoffset 1s ease" }}
+                strokeDasharray={keliling}
+                strokeDashoffset={dashOffset}
+                transform="rotate(-90 88 88)"
+                style={{ transition: "stroke-dashoffset 1.2s ease" }}
               />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-white font-extrabold text-lg">
-              {skor}%
-            </span>
-          </div>
-          <div className="flex-1">
-            <p className="text-white/70 text-xs">Skor Perilaku Akademik</p>
-            <p className="text-white font-bold text-lg leading-tight mt-0.5">
-              {skor >= 80 ? "Sangat Baik 🎉" : skor >= 60 ? "Cukup Baik 👍" : "Perlu Ditingkatkan 💪"}
-            </p>
-            <p className="text-primary-100 text-xs mt-1">
-              Berdasarkan {Object.keys(jawaban).length} kriteria evaluasi
-            </p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-extrabold" style={{ color: warna }}>{skor}%</span>
+              <span className="text-[10px] font-bold tracking-widest text-gray-500 mt-0.5">
+                {skorLabel(skor)}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Profil utama */}
-        <h2 className="font-bold text-gray-700 text-sm mt-6 mb-3">Profil Kesimpulan</h2>
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-extrabold text-gray-900">
+            {profilUtama.kode.replace("P", "P0").replace("P010", "P10")} – {profilUtama.nama}
+          </h2>
+          <p className="text-gray-500 text-sm mt-2 leading-relaxed px-4">
+            {DESKRIPSI[profilUtama.kode]}
+          </p>
+        </div>
 
-        {hasil.map((profil, i) => {
-          const c = URGENSI_CFG[profil.urgensi] || URGENSI_CFG.sedang;
-          const Icon = c.icon;
-          return (
-            <div
-              key={profil.kode}
-              className={`rounded-2xl border px-5 py-4 mb-3 ${c.bg} ${c.border} fade-in`}
-              style={{ animationDelay: `${i * 80}ms` }}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`mt-0.5 shrink-0 ${c.iconColor}`}>
-                  <Icon size={22} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-gray-900">{profil.nama}</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${c.badge}`}>
-                      {c.label}
-                    </span>
-                    <span className="text-[10px] text-gray-400 ml-auto">{profil.kode}</span>
-                  </div>
-                  <p className="text-gray-600 text-xs mt-2 leading-relaxed">{profil.rekomendasi}</p>
-                </div>
-              </div>
+        {/* Kartu rekomendasi */}
+        <div className="border border-primary-200 rounded-2xl px-5 py-5 mb-5 bg-white shadow-soft">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center text-primary-600">
+              <Bot size={17} />
             </div>
-          );
-        })}
-
-        {/* Ringkasan jawaban */}
-        <h2 className="font-bold text-gray-700 text-sm mt-5 mb-3">Ringkasan Jawaban</h2>
-        <div className="bg-white rounded-2xl shadow-soft px-5 py-4">
-          <div className="flex gap-6 justify-center mb-4">
-            <div className="text-center">
-              <p className="text-2xl font-extrabold text-primary-600">
-                {Object.values(jawaban).filter(Boolean).length}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">Ya / Terpenuhi</p>
-            </div>
-            <div className="w-px bg-gray-100" />
-            <div className="text-center">
-              <p className="text-2xl font-extrabold text-red-500">
-                {Object.values(jawaban).filter((v) => !v).length}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">Tidak / Belum</p>
-            </div>
+            <span className="font-bold text-primary-700 text-base">Rekomendasi Tindakan</span>
           </div>
 
-          {/* Grid kriteria */}
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(jawaban).map(([k, v]) => (
-              <span
-                key={k}
-                className={`text-[10px] font-semibold px-2 py-1 rounded-lg ${
-                  v ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
-                }`}
-              >
-                {k}
-              </span>
+          <div className="space-y-3">
+            {tips.map((tip, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <CheckCircle2
+                  size={18}
+                  className="shrink-0 mt-0.5"
+                  style={{ color: warna }}
+                />
+                <p className="text-gray-700 text-sm leading-relaxed">{tip}</p>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Aksi */}
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={() => navigate("/kuesioner")}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl border-2 border-primary-600 text-primary-600 font-semibold text-sm active:scale-95 transition-transform"
-          >
-            <RotateCcw size={16} />
-            Ulangi
-          </button>
-          <button
-            onClick={() => navigate("/beranda")}
-            className="flex-1 btn-primary flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-semibold active:scale-95 transition-transform"
-          >
-            <Home size={16} />
-            Beranda
-          </button>
-        </div>
+        {/* Profil tambahan (jika ada lebih dari 1) */}
+        {hasil.length > 1 && (
+          <div className="mb-5">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">
+              Profil Lain yang Terdeteksi
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {hasil.slice(1).map((p) => (
+                <span
+                  key={p.kode}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200"
+                >
+                  {p.kode} · {p.nama}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
-        <p className="text-center text-[10px] text-gray-400 mt-5 leading-relaxed">
-          Hasil ini dihasilkan oleh mesin inferensi Forward Chaining berbasis basis pengetahuan v2.
-          Konsultasikan hasil ini dengan dosen PA atau konselor kampus untuk tindak lanjut.
-        </p>
+      {/* CTA bottom */}
+      <div className="px-5 pb-3">
+        <button
+          onClick={() => navigate("/beranda")}
+          className="btn-primary w-full py-4 flex items-center justify-between px-6 rounded-2xl"
+        >
+          <div className="text-left">
+            <p className="font-bold text-sm">Mulai Konsultasi Interaktif</p>
+            <p className="text-white/70 text-xs">bersama Sentinel-Bot AI</p>
+          </div>
+          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+            <Bot size={18} />
+          </div>
+        </button>
       </div>
 
       <BottomNav />

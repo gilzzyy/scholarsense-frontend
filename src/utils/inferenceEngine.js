@@ -215,3 +215,59 @@ export function runInference(facts) {
 
   return hasil;
 }
+
+// --------------------------------------------------------------------------
+// TIPS AKSI per profil (3 bullet point untuk halaman Hasil Analisis)
+// --------------------------------------------------------------------------
+export const TIPS = {
+  P1: [
+    "Alokasikan 2 jam di pagi hari untuk tugas dengan tingkat kognitif tertinggi sebelum distraksi muncul.",
+    "Gunakan teknik Pomodoro (50/10) untuk menjaga fokus jangka panjang tanpa kelelahan mental.",
+    "Review jadwal mingguan setiap hari Minggu malam untuk memvisualisasikan beban kerja mendatang.",
+  ],
+  P2: [
+    "Jadikan kejujuran akademik sebagai identitas diri, bukan sekadar kewajiban peraturan kampus.",
+    "Beranikan diri untuk menegur dengan santun jika melihat pelanggaran integritas di sekitarmu.",
+    "Dokumentasikan setiap pencapaian akademis dengan jujur sebagai portofolio masa depan.",
+  ],
+  P3: [
+    "Latih kemampuan public speaking dengan bergabung di komunitas debat atau diskusi ilmiah kampus.",
+    "Jadilah pendengar aktif: catat poin penting saat diskusi kelompok agar kontribusimu lebih terarah.",
+    "Bangun jaringan pertemanan lintas jurusan untuk memperluas wawasan dan kolaborasi akademis.",
+  ],
+  P4: [
+    "Buat kalender gabungan antara jadwal kuliah dan kegiatan organisasi agar tidak saling bertabrakan.",
+    "Delegasikan tugas organisasi kepada anggota lain saat beban akademis sedang tinggi.",
+    "Manfaatkan pengalaman organisasimu sebagai bahan cerita di CV dan sesi wawancara kerja.",
+  ],
+  P5: [
+    "Mulai hari dengan menetapkan 3 prioritas utama sebelum membuka media sosial atau handphone.",
+    "Pasang handphone dalam mode senyap dan simpan di dalam tas selama sesi perkuliahan berlangsung.",
+    "Temukan 'partner belajar' yang disiplin untuk saling mengingatkan dan menjaga produktivitas.",
+  ],
+  P6: [
+    "Buat kesepakatan dengan pengurus organisasi tentang batas maksimal jam rapat di hari kuliah.",
+    "Komunikasikan kendala tugasmu kepada dosen lebih awal, jangan tunggu deadline terlewat.",
+    "Evaluasi kembali apakah semua posisi organisasi yang kamu emban benar-benar memberikan manfaat.",
+  ],
+  P7: [
+    "Temui dosen pembimbing akademik (PA) minggu ini untuk mendiskusikan langkah pemulihan reputasi.",
+    "Buat komitmen tertulis kepada dirimu sendiri untuk mematuhi seluruh aturan akademik kampus.",
+    "Jadikan pengalaman ini sebagai titik balik: mulailah membangun rekam jejak positif dari sekarang.",
+  ],
+  P8: [
+    "Bergabunglah dengan kelompok belajar kecil (3–5 orang) untuk mengurangi rasa jenuh belajar sendiri.",
+    "Manfaatkan layanan konseling atau psikolog kampus — itu hakmu sebagai mahasiswa, bukan kelemahan.",
+    "Cari satu aktivitas non-akademis yang kamu sukai untuk menjaga keseimbangan mental dan emosi.",
+  ],
+  P9: [
+    "Segera jadwalkan pertemuan dengan dosen PA atau Kaprodi dalam minggu ini tanpa penundaan.",
+    "Identifikasi satu hambatan terbesar dalam studimu dan fokus selesaikan satu per satu.",
+    "Ingat alasan awalmu masuk kuliah dan tuliskan kembali tujuan yang ingin kamu capai setelah lulus.",
+  ],
+  P10: [
+    "Jadilah mentor bagi adik tingkat atau mahasiswa baru yang membutuhkan bimbingan akademis.",
+    "Daftarkan diri ke kompetisi ilmiah, beasiswa unggulan, atau program pertukaran mahasiswa.",
+    "Dokumentasikan perjalanan akademismu sebagai inspirasi dan bangun personal branding yang kuat.",
+  ],
+};
