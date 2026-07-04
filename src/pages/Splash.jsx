@@ -1,62 +1,162 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
-import StatusBar from "../components/StatusBar";
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
+import { ArrowRight } from 'lucide-react-native';
+import Svg, { Path, Circle } from 'react-native-svg';
 
 export default function Splash() {
-  const navigate = useNavigate();
+  const navigation = useNavigation();
 
   return (
-    <div className="flex flex-col h-full bg-primary-700">
-      <StatusBar dark />
+    <View style={styles.container}>
+      <StatusBar style="light" />
 
-      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
-        <h1 className="text-white text-4xl font-extrabold tracking-tight">ScholarSense</h1>
-        <p className="text-primary-100 text-sm mt-2">Konsultasi Perilaku Akademik Online</p>
+      {/* Top green section */}
+      <View style={styles.topSection}>
+        <SafeAreaView style={styles.topContent}>
+          <Text style={styles.title}>ScholarSense</Text>
+          <Text style={styles.subtitle}>Konsultasi Perilaku Akademik Online</Text>
 
-        <div className="flex items-center gap-2 mt-8">
-          <span className="w-2 h-2 rounded-full bg-white/40" />
-          <span className="w-2 h-2 rounded-full bg-white/40" />
-          <span className="w-6 h-2 rounded-full bg-white" />
-        </div>
-      </div>
+          <View style={styles.dots}>
+            <View style={styles.dotSmall} />
+            <View style={styles.dotSmall} />
+            <View style={styles.dotWide} />
+          </View>
+        </SafeAreaView>
+      </View>
 
-      <div className="relative bg-white rounded-t-[36px] px-8 pt-10 pb-12 text-center overflow-hidden">
-        <svg
-          className="absolute -bottom-2 -left-2 opacity-90"
-          width="120"
-          height="120"
-          viewBox="0 0 120 120"
-          fill="none"
+      {/* Bottom white section */}
+      <View style={styles.bottomSection}>
+        {/* Decorative SVG */}
+        <View style={styles.decorSvg}>
+          <Svg width={120} height={120} viewBox="0 0 120 120" fill="none">
+            <Path
+              d="M0 120C20 90 10 60 30 40C50 20 80 30 90 10"
+              stroke="#1F7A40"
+              strokeWidth={10}
+              strokeLinecap="round"
+              opacity={0.15}
+            />
+            <Circle cx={18} cy={100} r={10} fill="#2F8F52" opacity={0.5} />
+            <Circle cx={40} cy={112} r={6} fill="#1F7A40" opacity={0.4} />
+          </Svg>
+        </View>
+
+        <Text style={styles.heading}>
+          Mulai Perjalanan{'\n'}Akademik yang lebih baik{'\n'}bersama{' '}
+          <Text style={styles.headingGreen}>ScholarSense</Text>
+        </Text>
+
+        <TouchableOpacity
+          style={styles.button}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('Register')}
         >
-          <path
-            d="M0 120C20 90 10 60 30 40C50 20 80 30 90 10"
-            stroke="#1F7A40"
-            strokeWidth="10"
-            strokeLinecap="round"
-            opacity="0.15"
-          />
-          <circle cx="18" cy="100" r="10" fill="#2F8F52" opacity="0.5" />
-          <circle cx="40" cy="112" r="6" fill="#1F7A40" opacity="0.4" />
-        </svg>
-
-        <h2 className="text-lg font-bold text-gray-900 leading-snug relative z-10">
-          Mulai Perjalanan
-          <br />
-          Akademik yang lebih baik
-          <br />
-          bersama <span className="text-primary-600">ScholarSense</span>
-        </h2>
-
-        <button
-          onClick={() => navigate("/register")}
-          className="btn-primary w-full mt-8 py-4 flex items-center justify-center gap-2 relative z-10"
-        >
-          Mulai Sekarang
-          <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-            <ArrowRight size={14} />
-          </span>
-        </button>
-      </div>
-    </div>
+          <Text style={styles.buttonText}>Mulai Sekarang</Text>
+          <View style={styles.buttonIcon}>
+            <ArrowRight size={14} color="#fff" />
+          </View>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#155c33',
+  },
+  topSection: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  title: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    color: '#cfe9d6',
+    fontSize: 14,
+    marginTop: 8,
+  },
+  dots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 32,
+  },
+  dotSmall: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  dotWide: {
+    width: 24,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#fff',
+  },
+  bottomSection: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    paddingHorizontal: 32,
+    paddingTop: 40,
+    paddingBottom: 48,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  decorSvg: {
+    position: 'absolute',
+    bottom: -8,
+    left: -8,
+  },
+  heading: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    lineHeight: 26,
+    position: 'relative',
+    zIndex: 10,
+    textAlign: 'center',
+  },
+  headingGreen: {
+    color: '#176236',
+  },
+  button: {
+    backgroundColor: '#1f7a40',
+    borderRadius: 9999,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 32,
+    zIndex: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  buttonIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

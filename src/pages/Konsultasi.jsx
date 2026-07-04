@@ -1,65 +1,174 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, HelpCircle, Timer, Play } from "lucide-react";
-import StatusBar from "../components/StatusBar";
-import BottomNav from "../components/BottomNav";
-import StudentIllustration from "../assets/StudentIllustration";
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
+import { ArrowLeft, HelpCircle, Clock, Play } from 'lucide-react-native';
+import BottomNav from '../components/BottomNav';
+import StudentIllustration from '../assets/StudentIllustration';
 
 export default function Konsultasi() {
-  const navigate = useNavigate();
+  const navigation = useNavigation();
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <StatusBar />
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
 
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
-        <button onClick={() => navigate("/beranda")} className="text-primary-700">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="font-bold text-primary-700">Konsultasi</h1>
-      </div>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.navigate('Beranda')}>
+          <ArrowLeft size={20} color="#155c33" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Konsultasi</Text>
+      </View>
 
-      <div className="screen-scroll px-7 pb-8 flex flex-col items-center text-center">
-        <div className="mt-6">
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.illustrationWrap}>
           <StudentIllustration size={210} />
-        </div>
+        </View>
 
-        <h2 className="font-extrabold text-gray-900 text-xl mt-2">ScholarSense</h2>
-
-        <p className="text-primary-600 font-semibold mt-6">Pahami Potensimu</p>
-        <p className="text-gray-500 text-sm mt-2 leading-relaxed">
+        <Text style={styles.appName}>ScholarSense</Text>
+        <Text style={styles.tagline}>Pahami Potensimu</Text>
+        <Text style={styles.desc}>
           Langkah awal untuk pertumbuhan akademik yang bermakna dimulai dari kejujuran pada diri sendiri
-        </p>
+        </Text>
 
-        <div className="flex gap-3 w-full mt-7">
-          <div className="flex-1 bg-gray-50 border border-gray-100 rounded-2xl py-5 flex flex-col items-center gap-2">
-            <div className="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center text-primary-600">
-              <HelpCircle size={18} />
-            </div>
-            <span className="text-sm font-semibold text-gray-900">15 Pertanyaan</span>
-          </div>
-          <div className="flex-1 bg-gray-50 border border-gray-100 rounded-2xl py-5 flex flex-col items-center gap-2">
-            <div className="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center text-primary-600">
-              <Timer size={18} />
-            </div>
-            <span className="text-sm font-semibold text-gray-900">3 Menit</span>
-          </div>
-        </div>
+        {/* Info cards row */}
+        <View style={styles.infoRow}>
+          <View style={styles.infoCard}>
+            <View style={styles.infoIcon}>
+              <HelpCircle size={18} color="#176236" />
+            </View>
+            <Text style={styles.infoText}>15 Pertanyaan</Text>
+          </View>
+          <View style={styles.infoCard}>
+            <View style={styles.infoIcon}>
+              <Clock size={18} color="#176236" />
+            </View>
+            <Text style={styles.infoText}>3 Menit</Text>
+          </View>
+        </View>
 
-        <button
-          onClick={() => navigate("/kuesioner")}
-          className="btn-primary w-full py-4 mt-7 flex items-center justify-center gap-2"
+        {/* CTA */}
+        <TouchableOpacity
+          style={styles.ctaBtn}
+          onPress={() => navigation.navigate('Kuesioner')}
+          activeOpacity={0.85}
         >
-          Mulai Evaluasi
-          <Play size={14} fill="white" />
-        </button>
+          <Text style={styles.ctaBtnText}>Mulai Evaluasi</Text>
+          <Play size={14} color="#fff" fill="#fff" />
+        </TouchableOpacity>
 
-        <p className="text-[11px] text-gray-400 mt-4 leading-relaxed">
+        <Text style={styles.footerNote}>
           Jawablah setiap pertanyaan sejujur mungkin. Hasil evaluasi akan diproses menggunakan mesin
           inferensi Forward Chaining.
-        </p>
-      </div>
+        </Text>
+      </ScrollView>
 
       <BottomNav />
-    </div>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  headerTitle: {
+    fontWeight: '700',
+    color: '#155c33',
+    fontSize: 16,
+  },
+  scroll: {
+    paddingHorizontal: 28,
+    paddingBottom: 32,
+    alignItems: 'center',
+  },
+  illustrationWrap: {
+    marginTop: 24,
+  },
+  appName: {
+    fontWeight: '800',
+    color: '#111827',
+    fontSize: 20,
+    marginTop: 8,
+  },
+  tagline: {
+    color: '#176236',
+    fontWeight: '600',
+    marginTop: 24,
+    fontSize: 16,
+  },
+  desc: {
+    color: '#6b7280',
+    fontSize: 14,
+    marginTop: 8,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+    marginTop: 28,
+  },
+  infoCard: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    borderRadius: 16,
+    paddingVertical: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  infoIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#eaf5ee',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  ctaBtn: {
+    backgroundColor: '#1f7a40',
+    borderRadius: 9999,
+    paddingVertical: 16,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 28,
+  },
+  ctaBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  footerNote: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginTop: 16,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+});

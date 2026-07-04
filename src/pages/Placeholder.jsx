@@ -1,31 +1,87 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Construction } from "lucide-react";
-import StatusBar from "../components/StatusBar";
-import BottomNav from "../components/BottomNav";
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
+import { ArrowLeft, Construction } from 'lucide-react-native';
+import BottomNav from '../components/BottomNav';
 
-export default function Placeholder({ title, backTo = "/beranda", note }) {
-  const navigate = useNavigate();
+export default function Placeholder() {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const title = route.params?.title || 'Halaman';
+  const note = route.params?.note || 'Bagian frontend ini berada di luar scope yang ditugaskan ke kamu.';
+
   return (
-    <div className="flex flex-col h-full bg-white">
-      <StatusBar />
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-100">
-        <button onClick={() => navigate(backTo)} className="text-primary-700">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="font-bold text-primary-700">{title}</h1>
-      </div>
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
 
-      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center gap-3">
-        <div className="w-14 h-14 rounded-full bg-primary-50 flex items-center justify-center text-primary-600">
-          <Construction size={26} />
-        </div>
-        <p className="font-semibold text-gray-800">Halaman ini dikerjakan rekan tim lain</p>
-        <p className="text-xs text-gray-400">
-          {note || "Bagian frontend ini berada di luar scope yang ditugaskan ke kamu."}
-        </p>
-      </div>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.navigate('Beranda')}>
+          <ArrowLeft size={20} color="#155c33" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{title}</Text>
+      </View>
+
+      {/* Content */}
+      <View style={styles.content}>
+        <View style={styles.iconWrap}>
+          <Construction size={26} color="#176236" />
+        </View>
+        <Text style={styles.mainText}>Halaman ini dikerjakan rekan tim lain</Text>
+        <Text style={styles.noteText}>{note}</Text>
+      </View>
 
       <BottomNav />
-    </div>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  headerTitle: {
+    fontWeight: '700',
+    color: '#155c33',
+    fontSize: 16,
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    gap: 12,
+  },
+  iconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#eaf5ee',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mainText: {
+    fontWeight: '600',
+    color: '#1f2937',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  noteText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+});

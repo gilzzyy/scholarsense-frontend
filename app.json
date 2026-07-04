@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "ScholarSense",
+    "slug": "scholarsense",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#155c33"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.scholarsense.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#155c33"
+      },
+      "package": "com.scholarsense.app"
+    }
+  }
+}
