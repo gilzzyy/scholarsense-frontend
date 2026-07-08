@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { ArrowLeft, User, CreditCard, Mail, Lock, AlertCircle, Check } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 
-function Field({ label, icon: Icon, type = 'text', placeholder, value, onChangeText }) {
+function Field({ label, icon: Icon, type = 'text', placeholder, value, onChangeText, editable = true }) {
   return (
     <View style={styles.fieldGroup}>
       <Text style={styles.label}>{label}</Text>
@@ -23,6 +23,7 @@ function Field({ label, icon: Icon, type = 'text', placeholder, value, onChangeT
           keyboardType={type === 'email' ? 'email-address' : 'default'}
           autoCapitalize={type === 'email' ? 'none' : 'sentences'}
           style={styles.input}
+          editable={editable}
         />
       </View>
     </View>
@@ -41,10 +42,12 @@ export default function Register() {
   });
   const [agree, setAgree] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const onChange = (key) => (value) => setForm((f) => ({ ...f, [key]: value }));
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     setError('');
     if (!form.namaLengkap || !form.nim || !form.email || !form.password) {
       setError('Semua kolom wajib diisi.');
@@ -62,9 +65,26 @@ export default function Register() {
       setError('Kamu harus menyetujui Syarat & Ketentuan terlebih dahulu.');
       return;
     }
-    // TODO: integrasi -> POST /api/auth/register (lihat AuthContext.jsx)
-    register(form);
-    navigation.navigate('Beranda');
+
+    setLoading(true);
+    try {
+      await register({
+        nama_lengkap: form.namaLengkap,
+        nim: form.nim,
+        email: form.email,
+        password: form.password,
+        konfirmasi_password: form.confirmPassword,
+      });
+      setSuccess(true);
+      // Navigate ke Login setelah register berhasil (API tidak return token)
+      setTimeout(() => {
+        navigation.navigate('Login');
+      }, 1500);
+    } catch (err) {
+      setError(err.message || 'Registrasi gagal. Coba lagi.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -90,6 +110,7 @@ export default function Register() {
             placeholder="Nama Sesuai KTM"
             value={form.namaLengkap}
             onChangeText={onChange('namaLengkap')}
+            editable={!loading}
           />
           <Field
             label="NIM"
@@ -97,6 +118,7 @@ export default function Register() {
             placeholder="Nomor Induk Mahasiswa"
             value={form.nim}
             onChangeText={onChange('nim')}
+            editable={!loading}
           />
           <Field
             label="Email"
@@ -105,6 +127,7 @@ export default function Register() {
             placeholder="email@kampus.ac.id"
             value={form.email}
             onChangeText={onChange('email')}
+            editable={!loading}
           />
           <Field
             label="Password"
@@ -113,6 +136,7 @@ export default function Register() {
             placeholder="Min 8 karakter"
             value={form.password}
             onChangeText={onChange('password')}
+            editable={!loading}
           />
           <Field
             label="Konfirmasi Password"
@@ -121,7 +145,16 @@ export default function Register() {
             placeholder="Ulangi password"
             value={form.confirmPassword}
             onChangeText={onChange('confirmPassword')}
+            editable={!loading}
           />
+
+          {/* Success */}
+          {success ? (
+            <View style={styles.successBox}>
+              <Check size={14} color="#15803d" />
+              <Text style={styles.successText}>Registrasi berhasil! Mengarahkan ke halaman login...</Text>
+            </View>
+          ) : null}
 
           {/* Error */}
           {error ? (
@@ -147,8 +180,17 @@ export default function Register() {
           </TouchableOpacity>
 
           {/* Submit */}
-          <TouchableOpacity style={styles.btnPrimary} onPress={onSubmit} activeOpacity={0.85}>
-            <Text style={styles.btnPrimaryText}>Daftar Akun</Text>
+          <TouchableOpacity
+            style={[styles.btnPrimary, loading && styles.btnDisabled]}
+            onPress={onSubmit}
+            activeOpacity={0.85}
+            disabled={loading || success}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.btnPrimaryText}>Daftar Akun</Text>
+            )}
           </TouchableOpacity>
 
           {/* Login link */}
@@ -223,6 +265,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
+  successBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  successText: {
+    color: '#15803d',
+    fontSize: 12,
+    flex: 1,
+  },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -273,6 +329,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 4,
+  },
+  btnDisabled: {
+    opacity: 0.7,
   },
   btnPrimaryText: {
     color: '#fff',

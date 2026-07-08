@@ -1,86 +1,76 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiLogin, apiRegister, apiGetProfile, apiLogout } from '../utils/api';
 
 const AuthContext = createContext(null);
 
-// NOTE (frontend-only scope):
-// Tim backend akan menyediakan REST API (Node.js + Express, JWT, MySQL) sesuai BRD F-01/F-02.
-// Context ini menyimulasikan state auth di sisi frontend supaya alur Splash -> Registrasi/Login -> Beranda
-// bisa di-demo dan tinggal disambungkan (ganti fungsi login/register dengan fetch ke API asli).
+const TOKEN_KEY = 'scholarsense_token';
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [history, setHistory] = useState([
-    {
-      id: '1',
-      tanggal: '18 JUNI 2026',
-      nama: 'Disiplin Waktu',
-      kode: 'P1',
-      jawaban: { K1: true, K2: true, K3: true, K4: true, K5: false } // 80%
-    },
-    {
-      id: '2',
-      tanggal: '12 JUNI 2026',
-      nama: 'Manajemen Stress',
-      kode: 'P8',
-      jawaban: { K1: true, K2: true, K3: false, K4: false, K5: false } // 40%
-    },
-    {
-      id: '3',
-      tanggal: '05 JUNI 2026',
-      nama: 'Motivasi Belajar',
-      kode: 'P4',
-      jawaban: { K1: true, K2: true, K3: true, K4: false } // 75%
-    },
-    {
-      id: '4',
-      tanggal: '28 MEI 2026',
-      nama: 'Kesehatan Mental',
-      kode: 'P8',
-      jawaban: { K1: true, K2: false, K3: false } // 33%
-    },
-  ]);
+  const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true); // true saat cek token awal
 
-  const login = ({ identifier }) => {
-    // TODO: integrasi -> POST /api/auth/login { nim/email, password }
-    setUser({ nama: 'Dimas', identifier }); // Set default to 'Dimas' as in screenshot design, or allow custom name
-    return { success: true };
+  // ------------------------------------------------------------------
+  // Auto-load: cek token di AsyncStorage saat app pertama kali dibuka
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    (async () => {
+      try {
+        const savedToken = await AsyncStorage.getItem(TOKEN_KEY);
+        if (savedToken) {
+          const res = await apiGetProfile(savedToken);
+          setToken(savedToken);
+          setUser(res.data.user);
+        }
+      } catch {
+        // Token expired atau invalid → hapus
+        await AsyncStorage.removeItem(TOKEN_KEY);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // ------------------------------------------------------------------
+  // Login: POST /api/v1/auth/login
+  // ------------------------------------------------------------------
+  const login = async ({ nim_or_email, password }) => {
+    const res = await apiLogin({ nim_or_email, password });
+    const { access_token, user: userData } = res.data;
+
+    await AsyncStorage.setItem(TOKEN_KEY, access_token);
+    setToken(access_token);
+    setUser(userData);
+
+    return res;
   };
 
-  const register = ({ namaLengkap, nim, email }) => {
-    // TODO: integrasi -> POST /api/auth/register { namaLengkap, nim, email, password }
-    setUser({ nama: namaLengkap || 'Dimas', nim, email });
-    return { success: true };
+  // ------------------------------------------------------------------
+  // Register: POST /api/v1/auth/register
+  // Tidak auto-login (API tidak return token saat register)
+  // ------------------------------------------------------------------
+  const register = async ({ nama_lengkap, nim, email, password, konfirmasi_password }) => {
+    const res = await apiRegister({ nama_lengkap, nim, email, password, konfirmasi_password });
+    return res;
   };
 
-  const logout = () => {
+  // ------------------------------------------------------------------
+  // Logout: POST /api/v1/auth/logout
+  // ------------------------------------------------------------------
+  const logout = async () => {
+    try {
+      if (token) await apiLogout(token);
+    } catch {
+      // Ignore logout errors (token might already be expired)
+    }
+    await AsyncStorage.removeItem(TOKEN_KEY);
+    setToken(null);
     setUser(null);
   };
 
-  const addHistory = (namaProfil, kodeProfil, jawabanBaru) => {
-    const tgl = new Date();
-    const namaBulan = [
-      'JANUARI', 'FEBRUARI', 'MARET', 'APRIL', 'MEI', 'JUNI',
-      'JULI', 'AGUSTUS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DESEMBER'
-    ];
-    const formatTanggal = `${tgl.getDate()} ${namaBulan[tgl.getMonth()]} ${tgl.getFullYear()}`;
-    
-    setHistory((prev) => [
-      {
-        id: String(Date.now()),
-        tanggal: formatTanggal,
-        nama: namaProfil,
-        kode: kodeProfil,
-        jawaban: jawabanBaru,
-      },
-      ...prev,
-    ]);
-  };
-
-  const clearHistory = () => {
-    setHistory([]);
-  };
-
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, history, addHistory, clearHistory }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

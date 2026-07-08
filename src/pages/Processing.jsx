@@ -6,7 +6,6 @@ import { StatusBar } from 'expo-status-bar';
 import { CheckCircle2, LayoutGrid, BarChart2, Database } from 'lucide-react-native';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import BottomNav from '../components/BottomNav';
-import { useAuth } from '../context/AuthContext';
 
 const STEPS = [
   { icon: CheckCircle2, label: 'Mengumpulkan data kriteria...' },
@@ -17,12 +16,11 @@ const STEPS = [
 export default function Processing() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { addHistory } = useAuth();
   const [step, setStep] = useState(0);
   const spinAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (!route.params?.hasil) {
+    if (!route.params?.apiResult) {
       navigation.navigate('Konsultasi');
       return;
     }
@@ -41,9 +39,11 @@ export default function Processing() {
     const t2 = setTimeout(() => setStep(2), 1500);
     const t3 = setTimeout(() => setStep(3), 2300);
     const t4 = setTimeout(() => {
-      const profilUtama = route.params.hasil[0];
-      addHistory(profilUtama.nama, profilUtama.kode, route.params.jawaban);
-      navigation.navigate('Hasil', route.params);
+      // Data already comes from API, pass apiResult + answers forward
+      navigation.navigate('Hasil', {
+        apiResult: route.params.apiResult,
+        answers: route.params.answers,
+      });
     }, 3000);
 
     return () => [t1, t2, t3, t4].forEach(clearTimeout);

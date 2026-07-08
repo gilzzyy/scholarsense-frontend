@@ -6,13 +6,6 @@ import { StatusBar } from 'expo-status-bar';
 import { ArrowLeft, CheckCircle2, Bot } from 'lucide-react-native';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import BottomNav from '../components/BottomNav';
-import { TIPS } from '../utils/inferenceEngine';
-
-function hitungSkor(jawaban) {
-  const entries = Object.values(jawaban);
-  if (!entries.length) return 0;
-  return Math.round((entries.filter(Boolean).length / entries.length) * 100);
-}
 
 function skorLabel(skor) {
   if (skor >= 85) return 'SANGAT BAIK';
@@ -27,33 +20,57 @@ function skorWarna(skor) {
   return '#ef4444';
 }
 
-const DESKRIPSI = {
-  P1: 'Kemampuan Anda dalam mengelola prioritas akademik berada di atas rata-rata kelompok studi.',
-  P2: 'Anda menunjukkan integritas tinggi dalam seluruh aspek kehidupan akademik di kampus.',
-  P3: 'Kemampuan berkomunikasi dan bekerja sama Anda menjadi aset berharga dalam tim.',
-  P4: 'Anda berhasil menyeimbangkan kemandirian belajar dengan keaktifan berorganisasi.',
-  P5: 'Terdapat beberapa aspek perilaku akademik yang perlu mendapat perhatian segera.',
-  P6: 'Keaktifan organisasi Anda berpotensi mengganggu performa akademik jika tidak dikelola.',
-  P7: 'Tercatat adanya riwayat pelanggaran yang perlu diselesaikan bersama pihak kampus.',
-  P8: 'Anda sedang mengalami kendala penyesuaian yang memerlukan dukungan dari lingkungan kampus.',
-  P9: 'Kondisi studi Anda saat ini memerlukan intervensi segera dari pihak akademik.',
-  P10: 'Anda adalah representasi mahasiswa berkarakter unggul yang dibanggakan kampus.',
-};
-
 export default function Hasil() {
   const navigation = useNavigation();
   const route = useRoute();
 
-  if (!route.params?.hasil) {
+  // Mendukung dua sumber data:
+  // 1. apiResult dari halaman Processing (konsultasi baru)
+  // 2. apiResult dari halaman Riwayat (history detail)
+  const apiResult = route.params?.apiResult;
+
+  if (!apiResult?.final_profile) {
     navigation.navigate('Konsultasi');
     return null;
   }
 
-  const { hasil, jawaban } = route.params;
-  const skor = hitungSkor(jawaban);
-  const profilUtama = hasil[0];
+  const { final_profile, scores, consultation_id } = apiResult;
+
+  // Hitung skor perilaku dari jawaban aktual (% jawaban "Ya")
+  // Ini lebih representatif daripada persentase_utama dari API
+  // yang merupakan confidence kecocokan profil
+  const answers = route.params?.answers;
+  const jawaban_raw = apiResult?.jawaban_raw;
+
+  let skor;
+  if (answers && answers.length > 0) {
+    // Dari konsultasi baru (Kuesioner → Processing → Hasil)
+    const yaCount = answers.filter((a) => a.answer === true).length;
+    skor = Math.round((yaCount / answers.length) * 100);
+  } else if (jawaban_raw) {
+    // Dari riwayat (history detail) — jawaban_raw: { "1": true, "2": false, ... }
+    const vals = Object.values(jawaban_raw);
+    const yaCount = vals.filter(Boolean).length;
+    skor = vals.length > 0 ? Math.round((yaCount / vals.length) * 100) : 0;
+  } else {
+    // Fallback jika tidak ada data jawaban
+    skor = Math.round(final_profile.persentase_utama);
+  }
+
   const warna = skorWarna(skor);
-  const tips = TIPS[profilUtama.kode] || TIPS.P8;
+
+  // Parse rekomendasi_tindakan menjadi array tips
+  const rekomendasiText = final_profile.rekomendasi_tindakan || '';
+  const tips = rekomendasiText
+    .split(/[.!]\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 10)
+    .slice(0, 4); // Max 4 tips
+
+  // Profil lain yang terdeteksi (is_match === true, selain profil utama)
+  const otherProfiles = (scores || [])
+    .filter((s) => s.is_match && s.kode_profil !== final_profile.kode_profil)
+    .sort((a, b) => a.peringkat - b.peringkat);
 
   // SVG ring
   const R = 72;
@@ -98,9 +115,14 @@ export default function Hasil() {
         {/* Profile */}
         <View style={styles.profileSection}>
           <Text style={styles.profileName}>
-            {profilUtama.kode.replace('P', 'P0').replace('P010', 'P10')} – {profilUtama.nama}
+            {final_profile.kode_profil} – {final_profile.nama_profil}
           </Text>
-          <Text style={styles.profileDesc}>{DESKRIPSI[profilUtama.kode]}</Text>
+          <Text style={styles.profileDesc}>{final_profile.deskripsi}</Text>
+          {final_profile.tingkat_urgensi ? (
+            <View style={[styles.urgensiBadge, { backgroundColor: warna + '18' }]}>
+              <Text style={[styles.urgensiText, { color: warna }]}>{final_profile.tingkat_urgensi}</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Recommendations */}
@@ -112,24 +134,30 @@ export default function Hasil() {
             <Text style={styles.recomTitle}>Rekomendasi Tindakan</Text>
           </View>
 
-          <View style={styles.recomList}>
-            {tips.map((tip, i) => (
-              <View key={i} style={styles.recomItem}>
-                <CheckCircle2 size={18} color={warna} style={styles.recomCheckIcon} />
-                <Text style={styles.recomText}>{tip}</Text>
-              </View>
-            ))}
-          </View>
+          {tips.length > 0 ? (
+            <View style={styles.recomList}>
+              {tips.map((tip, i) => (
+                <View key={i} style={styles.recomItem}>
+                  <CheckCircle2 size={18} color={warna} style={styles.recomCheckIcon} />
+                  <Text style={styles.recomText}>{tip}.</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.recomText}>{rekomendasiText}</Text>
+          )}
         </View>
 
         {/* Additional profiles */}
-        {hasil.length > 1 && (
+        {otherProfiles.length > 0 && (
           <View style={styles.otherProfiles}>
             <Text style={styles.otherTitle}>Profil Lain yang Terdeteksi</Text>
             <View style={styles.otherBadges}>
-              {hasil.slice(1).map((p) => (
-                <View key={p.kode} style={styles.otherBadge}>
-                  <Text style={styles.otherBadgeText}>{p.kode} · {p.nama}</Text>
+              {otherProfiles.map((p) => (
+                <View key={p.kode_profil} style={styles.otherBadge}>
+                  <Text style={styles.otherBadgeText}>
+                    {p.kode_profil} · {p.nama_profil} ({Math.round(p.persentase)}%)
+                  </Text>
                 </View>
               ))}
             </View>
@@ -141,12 +169,14 @@ export default function Hasil() {
       <View style={styles.ctaWrap}>
         <TouchableOpacity
           style={styles.ctaBtn}
-          onPress={() => navigation.navigate('Chat', { hasil, jawaban })}
+          onPress={() => navigation.navigate('Chat', {
+            consultation_id: consultation_id,
+          })}
           activeOpacity={0.85}
         >
           <View style={styles.ctaTextWrap}>
             <Text style={styles.ctaTitle}>Mulai Konsultasi Interaktif</Text>
-            <Text style={styles.ctaSub}>bersama Sentinel-Bot AI</Text>
+            <Text style={styles.ctaSub}>bersama Jhoko AI</Text>
           </View>
           <View style={styles.ctaIconWrap}>
             <Bot size={18} color="#fff" />
@@ -224,6 +254,18 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
     paddingHorizontal: 16,
+  },
+  urgensiBadge: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 9999,
+  },
+  urgensiText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   recomCard: {
     borderWidth: 1,

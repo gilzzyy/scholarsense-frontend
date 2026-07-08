@@ -1,11 +1,12 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { Bell, Heart, MessageCircle, BarChart3, ChevronRight } from 'lucide-react-native';
+import { Bell, Heart, MessageCircle, BarChart3, ChevronRight, LogOut } from 'lucide-react-native';
 import BottomNav from '../components/BottomNav';
 import { useAuth } from '../context/AuthContext';
+import { apiGetDashboard } from '../utils/api';
 
 const services = [
   {
@@ -24,8 +25,38 @@ const services = [
 
 export default function Dashboard() {
   const navigation = useNavigation();
-  const { user } = useAuth();
-  const firstName = user?.nama?.split(' ')[0] || 'Mahasiswa';
+  const { user, token, logout } = useAuth();
+  const firstName = user?.nama_lengkap?.split(' ')[0] || 'Mahasiswa';
+
+  const [dashData, setDashData] = useState(null);
+  const [loadingDash, setLoadingDash] = useState(true);
+
+  const fetchDashboard = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await apiGetDashboard(token);
+      setDashData(res.data);
+    } catch {
+      // Silently fail – use fallback content
+    } finally {
+      setLoadingDash(false);
+    }
+  }, [token]);
+
+  // Refresh dashboard setiap kali layar difokuskan (misal setelah selesai konsultasi)
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboard();
+    }, [fetchDashboard])
+  );
+
+  const handleLogout = async () => {
+    await logout();
+    navigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
+  };
+
+  const motivTitle = dashData?.quote
+    || 'Bangun Karakter Akademik Unggul, Mulai dari Evaluasi Diri hingga Sukses Masa Depan.';
 
   return (
     <View style={styles.container}>
@@ -42,22 +73,52 @@ export default function Dashboard() {
                 </View>
                 <Text style={styles.headerBrand}>ScholarSense</Text>
               </View>
-              <TouchableOpacity style={styles.bellBtn}>
-                <Bell size={18} color="#fff" />
-              </TouchableOpacity>
+              <View style={styles.headerRight}>
+                <TouchableOpacity style={styles.bellBtn}>
+                  <Bell size={18} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.bellBtn} onPress={handleLogout}>
+                  <LogOut size={18} color="#fff" />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <Text style={styles.greeting}>Halo, {firstName}</Text>
-            <Text style={styles.greetingSub}>Selamat Datang Di ScolarSense</Text>
+            <Text style={styles.greeting}>
+              {dashData?.welcome_message || `Halo, ${firstName}`}
+            </Text>
+            <Text style={styles.greetingSub}>Selamat Datang Di ScholarSense</Text>
 
             <View style={styles.motivCard}>
-              <Text style={styles.motivTitle}>
-                Bangun Karakter Akademik Unggul, Mulai dari Evaluasi Diri hingga Sukses Masa Depan.
-              </Text>
-              <Text style={styles.motivSub}>
-                Yuk, mulai konsultasi dan jadi versi terbaik dirimu bersama ScholarSense.
-              </Text>
+              {loadingDash ? (
+                <ActivityIndicator color="#176236" />
+              ) : (
+                <>
+                  <Text style={styles.motivTitle}>{motivTitle}</Text>
+                  <Text style={styles.motivSub}>
+                    Yuk, mulai konsultasi dan jadi versi terbaik dirimu bersama ScholarSense.
+                  </Text>
+                </>
+              )}
             </View>
+
+            {/* Last consultation badge */}
+            {dashData?.last_consultation && (
+              <TouchableOpacity
+                style={styles.lastConsultCard}
+                onPress={() =>
+                  navigation.navigate('Riwayat')
+                }
+                activeOpacity={0.85}
+              >
+                <View style={styles.lastConsultLeft}>
+                  <Text style={styles.lastConsultLabel}>KONSULTASI TERAKHIR</Text>
+                  <Text style={styles.lastConsultName}>{dashData.last_consultation.nama_profil}</Text>
+                </View>
+                <View style={styles.lastConsultBadge}>
+                  <Text style={styles.lastConsultPct}>{dashData.last_consultation.persentase_utama}%</Text>
+                </View>
+              </TouchableOpacity>
+            )}
           </SafeAreaView>
         </View>
 
@@ -78,7 +139,16 @@ export default function Dashboard() {
                 <TouchableOpacity
                   key={title}
                   style={styles.serviceItem}
-                  onPress={() => navigation.navigate(target)}
+                  onPress={() => {
+                    if (target === 'Chat') {
+                      // Langsung ke Chat — jika ada konsultasi terakhir, kirim ID-nya
+                      navigation.navigate('Chat', {
+                        consultation_id: dashData?.last_consultation?.consultation_id || null,
+                      });
+                    } else {
+                      navigation.navigate(target);
+                    }
+                  }}
                   activeOpacity={0.85}
                 >
                   <View style={styles.serviceIcon}>
@@ -132,6 +202,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   avatar: {
     width: 36,
@@ -192,6 +267,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 8,
     lineHeight: 18,
+  },
+  lastConsultCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 16,
+  },
+  lastConsultLeft: {
+    gap: 2,
+  },
+  lastConsultLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  lastConsultName: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  lastConsultBadge: {
+    backgroundColor: '#2f8f52',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  lastConsultPct: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
   },
   servicesWrap: {
     paddingHorizontal: 24,

@@ -1,13 +1,33 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { ArrowRight } from 'lucide-react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
+import { useAuth } from '../context/AuthContext';
 
 export default function Splash() {
   const navigation = useNavigation();
+  const { user, loading } = useAuth();
+
+  // Auto-navigate jika user sudah login (token valid)
+  useEffect(() => {
+    if (!loading && user) {
+      navigation.reset({ index: 0, routes: [{ name: 'Beranda' }] });
+    }
+  }, [loading, user]);
+
+  // Tampilkan loading saat cek token
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar style="light" />
+        <Text style={styles.title}>ScholarSense</Text>
+        <ActivityIndicator size="large" color="#fff" style={{ marginTop: 24 }} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

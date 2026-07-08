@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
@@ -12,16 +12,24 @@ export default function Login() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     setError('');
     if (!identifier || !password) {
       setError('Email/NIM dan password wajib diisi.');
       return;
     }
-    // TODO: integrasi -> POST /api/auth/login (lihat AuthContext.jsx)
-    login({ identifier });
-    navigation.navigate('Beranda');
+
+    setLoading(true);
+    try {
+      await login({ nim_or_email: identifier, password });
+      navigation.reset({ index: 0, routes: [{ name: 'Beranda' }] });
+    } catch (err) {
+      setError(err.message || 'Login gagal. Periksa kembali credential Anda.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -50,6 +58,7 @@ export default function Login() {
                 placeholderTextColor="#9aa39d"
                 style={styles.input}
                 autoCapitalize="none"
+                editable={!loading}
               />
             </View>
           </View>
@@ -68,6 +77,7 @@ export default function Login() {
                 placeholderTextColor="#9aa39d"
                 secureTextEntry
                 style={styles.input}
+                editable={!loading}
               />
             </View>
           </View>
@@ -86,8 +96,17 @@ export default function Login() {
           </TouchableOpacity>
 
           {/* Submit */}
-          <TouchableOpacity style={styles.btnPrimary} onPress={onSubmit} activeOpacity={0.85}>
-            <Text style={styles.btnPrimaryText}>Masuk</Text>
+          <TouchableOpacity
+            style={[styles.btnPrimary, loading && styles.btnDisabled]}
+            onPress={onSubmit}
+            activeOpacity={0.85}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.btnPrimaryText}>Masuk</Text>
+            )}
           </TouchableOpacity>
 
           {/* Divider */}
@@ -202,6 +221,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
+  },
+  btnDisabled: {
+    opacity: 0.7,
   },
   btnPrimaryText: {
     color: '#fff',
