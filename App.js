@@ -16,6 +16,11 @@ import HasilScreen from './src/pages/Hasil';
 import PlaceholderScreen from './src/pages/Placeholder';
 import RiwayatScreen from './src/pages/Riwayat';
 import ChatScreen from './src/pages/Chat';
+import Profile from './src/pages/Profile';
+import Notifikasi from './src/pages/Notifikasi';
+import EditProfil from './src/pages/EditProfil';
+import PengaturanAkun from './src/pages/PengaturanAkun';
+import UbahPassword from './src/pages/UbahPassword';
 
 const Stack = createNativeStackNavigator();
 
@@ -38,7 +43,11 @@ function App() {
           <Stack.Screen name="Hasil" component={HasilScreen} />
           <Stack.Screen name="Riwayat" component={RiwayatScreen} />
           <Stack.Screen name="Chat" component={ChatScreen} />
-          <Stack.Screen name="Profil" component={PlaceholderScreen} initialParams={{ title: 'Profil', note: 'Modul 6 dikerjakan rekan tim.' }} />
+          <Stack.Screen name="Profil" component={Profile} />
+          <Stack.Screen name="Notifikasi" component={Notifikasi} />
+          <Stack.Screen name="EditProfil" component={EditProfil} />
+          <Stack.Screen name="PengaturanAkun" component={PengaturanAkun} />
+          <Stack.Screen name="UbahPassword" component={UbahPassword} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>
