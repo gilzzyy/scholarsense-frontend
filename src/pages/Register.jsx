@@ -3,10 +3,13 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { ArrowLeft, User, CreditCard, Mail, Lock, AlertCircle, Check } from 'lucide-react-native';
+import { ArrowLeft, User, CreditCard, Mail, Lock, AlertCircle, Check, Eye, EyeOff } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 
 function Field({ label, icon: Icon, type = 'text', placeholder, value, onChangeText, editable = true }) {
+  const [showPassword, setShowPassword] = React.useState(false);
+  const isPassword = type === 'password';
+
   return (
     <View style={styles.fieldGroup}>
       <Text style={styles.label}>{label}</Text>
@@ -19,12 +22,24 @@ function Field({ label, icon: Icon, type = 'text', placeholder, value, onChangeT
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor="#9aa39d"
-          secureTextEntry={type === 'password'}
+          secureTextEntry={isPassword && !showPassword}
           keyboardType={type === 'email' ? 'email-address' : 'default'}
           autoCapitalize={type === 'email' ? 'none' : 'sentences'}
-          style={styles.input}
+          style={[styles.input, isPassword && { paddingRight: 48 }]}
           editable={editable}
         />
+        {isPassword && (
+          <TouchableOpacity
+            onPress={() => setShowPassword(!showPassword)}
+            style={{ position: 'absolute', right: 14, zIndex: 1, padding: 4 }}
+          >
+            {showPassword ? (
+              <EyeOff size={18} color="#6b7280" />
+            ) : (
+              <Eye size={18} color="#6b7280" />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

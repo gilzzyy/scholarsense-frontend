@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { Mail, Lock, AlertCircle } from 'lucide-react-native';
+import { Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -13,6 +13,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const onSubmit = async () => {
     setError('');
@@ -75,10 +76,20 @@ export default function Login() {
                 onChangeText={setPassword}
                 placeholder="••••••••"
                 placeholderTextColor="#9aa39d"
-                secureTextEntry
-                style={styles.input}
+                secureTextEntry={!showPassword}
+                style={[styles.input, { paddingRight: 48 }]}
                 editable={!loading}
               />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={{ position: 'absolute', right: 14, zIndex: 1, padding: 4 }}
+              >
+                {showPassword ? (
+                  <EyeOff size={18} color="#6b7280" />
+                ) : (
+                  <Eye size={18} color="#6b7280" />
+                )}
+              </TouchableOpacity>
             </View>
           </View>
 

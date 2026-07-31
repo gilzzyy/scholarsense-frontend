@@ -57,20 +57,44 @@ export default function Hasil() {
     skor = Math.round(final_profile.persentase_utama);
   }
 
+  // Fallback data jika dibuka dari Riwayat karena database history tidak menyertakan deskripsi & rekomendasi secara lengkap
+  const FALLBACK_DESKRIPSI = {
+    P0: "Mahasiswa yang secara umum menunjukkan perilaku akademis rata-rata, memiliki beberapa area positif namun masih memerlukan pengembangan konsistensi.",
+    P1: "Mahasiswa yang menunjukkan tingkat kedisiplinan yang sangat baik dalam kehadiran kelas, ketepatan waktu, dan pemenuhan aturan perkuliahan.",
+    P2: "Mahasiswa yang menunjukkan integritas akademik yang tinggi, selalu mengerjakan tugas dan ujian secara jujur tanpa indikasi kecurangan.",
+    P3: "Mahasiswa yang menunjukkan sikap komunikatif, kooperatif, serta berperan aktif dan positif dalam diskusi maupun kerja kelompok.",
+    P4: "Mahasiswa yang mandiri dalam proses belajar serta aktif berpartisipasi dalam organisasi, kegiatan kemahasiswaan, atau sosial.",
+    P5: "Mahasiswa yang menunjukkan kecenderungan kurang disiplin dalam pemenuhan kewajiban akademis dan memerlukan pengawasan lebih lanjut.",
+    P6: "Mahasiswa yang menunjukkan indikasi ketidakjujuran akademik atau pelanggaran tata tertib kampus.",
+    P7: "Mahasiswa yang menghadapi kendala belajar signifikan atau memerlukan bantuan bimbingan khusus untuk memulihkan performa akademisnya.",
+    P8: "Mahasiswa berkarakter unggul yang menunjukkan kombinasi luar biasa antara performa akademik tinggi, kedisiplinan, integritas, dan keaktifan positif."
+  };
+
+  const FALLBACK_REKOMENDASI = {
+    P0: "Pertahankan hal-hal positif yang sudah Anda lakukan. Cobalah untuk lebih konsisten dalam disiplin kehadiran, pengumpulan tugas, serta komunikasi dengan dosen. Buatlah target harian atau meningguan sederhana untuk meningkatkan performa akademik Anda secara bertahap.",
+    P1: "Pertahankan konsistensi kehadiran dan ketepatan waktu Anda. Teruskan kebiasaan baik ini untuk menjadi teladan bagi rekan mahasiswa lainnya. Manfaatkan manajemen waktu Anda yang sangat baik untuk mempersiapkan diri menghadapi tantangan akademik berikutnya.",
+    P2: "Jaga dan pertahankan integritas akademik Anda yang sangat baik. Sikap jujur dalam pengerjaan tugas dan ujian adalah pondasi utama kesuksesan jangka panjang. Menjadi asisten dosen atau tutor sebaya adalah pilihan baik untuk mengasah kepemimpinan Anda.",
+    P3: "Teruskan komunikasi yang baik dan kooperatif dengan dosen maupun sesama mahasiswa. Keaktifan dan keramahan Anda dalam kerja kelompok merupakan kontribusi yang sangat berharga. Cobalah memimpin inisiatif kelompok diskusi di masa mendatang.",
+    P4: "Keseimbangan antara kemandirian belajar dan keaktifan berorganisasi Anda sudah sangat baik. Teruskan semangat berkegiatan dengan tetap menjaga fokus akademik utama. Rencanakan skala prioritas mingguan agar performa tetap seimbang.",
+    P5: "Lakukan perbaikan dalam kedisiplinan belajar dan ketepatan waktu. Cobalah membuat jadwal belajar yang lebih teratur dan hindari menunda-nunda tugas. Berkonsultasilah dengan dosen pembimbing atau teman dekat untuk membantu menjaga fokus Anda.",
+    P6: "Lakukan evaluasi terhadap perilaku yang bertentangan dengan aturan akademik. Pahami kembali kode etik dan tata tertib kampus agar pelanggaran tidak terulang. Berkonsultasilah dengan dosen wali atau pihak terkait untuk menyusun langkah perbaikan dan membangun kembali integritas akademik.",
+    P7: "Segera komunikasikan kendala belajar Anda kepada dosen pengampu atau dosen pembimbing akademik. Mintalah pendampingan ekstra berupa bimbingan belajar tambahan atau bimbingan dari senior untuk memulihkan pemahaman akademis Anda.",
+    P8: "Selamat atas konsistensi karakter unggul yang Anda tunjukkan di berbagai bidang. Pertahankan motivasi belajar tinggi ini dan beranikan diri untuk mengikuti kompetisi mahasiswa berprestasi, program riset, atau pengajuan beasiswa nasional."
+  };
+
+  const matchedScore = (scores || []).find((s) => s.kode_profil === final_profile.kode_profil);
+  const tingkatUrgensi = final_profile.tingkat_urgensi || matchedScore?.tingkat_urgensi || '';
+  const deskripsiText = final_profile.deskripsi || FALLBACK_DESKRIPSI[final_profile.kode_profil] || '';
+  const rekomendasiText = final_profile.rekomendasi_tindakan || FALLBACK_REKOMENDASI[final_profile.kode_profil] || '';
+
   const warna = skorWarna(skor);
 
   // Parse rekomendasi_tindakan menjadi array tips
-  const rekomendasiText = final_profile.rekomendasi_tindakan || '';
   const tips = rekomendasiText
     .split(/[.!]\s+/)
     .map((s) => s.trim())
     .filter((s) => s.length > 10)
     .slice(0, 4); // Max 4 tips
-
-  // Profil lain yang terdeteksi (is_match === true, selain profil utama)
-  const otherProfiles = (scores || [])
-    .filter((s) => s.is_match && s.kode_profil !== final_profile.kode_profil)
-    .sort((a, b) => a.peringkat - b.peringkat);
 
   // SVG ring
   const R = 72;
@@ -117,10 +141,10 @@ export default function Hasil() {
           <Text style={styles.profileName}>
             {final_profile.kode_profil} – {final_profile.nama_profil}
           </Text>
-          <Text style={styles.profileDesc}>{final_profile.deskripsi}</Text>
-          {final_profile.tingkat_urgensi ? (
+          <Text style={styles.profileDesc}>{deskripsiText}</Text>
+          {tingkatUrgensi ? (
             <View style={[styles.urgensiBadge, { backgroundColor: warna + '18' }]}>
-              <Text style={[styles.urgensiText, { color: warna }]}>{final_profile.tingkat_urgensi}</Text>
+              <Text style={[styles.urgensiText, { color: warna }]}>{tingkatUrgensi}</Text>
             </View>
           ) : null}
         </View>
@@ -148,21 +172,74 @@ export default function Hasil() {
           )}
         </View>
 
-        {/* Additional profiles */}
-        {otherProfiles.length > 0 && (
-          <View style={styles.otherProfiles}>
-            <Text style={styles.otherTitle}>Profil Lain yang Terdeteksi</Text>
-            <View style={styles.otherBadges}>
-              {otherProfiles.map((p) => (
-                <View key={p.kode_profil} style={styles.otherBadge}>
-                  <Text style={styles.otherBadgeText}>
-                    {p.kode_profil} · {p.nama_profil} ({Math.round(p.persentase)}%)
-                  </Text>
-                </View>
-              ))}
-            </View>
+        {/* 9 Profiles Percentage List */}
+        <View style={styles.allProfilesCard}>
+          <Text style={styles.allProfilesTitle}>
+            Persentase Kecocokan 9 Profil Akademik
+          </Text>
+          <Text style={styles.allProfilesSub}>
+            Peringkat kesesuaian berdasarkan inferensi Forward Chaining:
+          </Text>
+
+          <View style={styles.profilesList}>
+            {(() => {
+              // Priority list of all 9 profiles
+              const rawScores = scores && scores.length > 0 ? scores : [];
+              const sorted = [...rawScores].sort((a, b) => {
+                if (a.peringkat && b.peringkat) return a.peringkat - b.peringkat;
+                return (b.persentase || 0) - (a.persentase || 0);
+              });
+
+              return sorted.map((item, index) => {
+                const pct = item.persentase !== undefined ? Math.round(item.persentase) : 0;
+                const isTop = item.is_match || item.kode_profil === final_profile.kode_profil || index === 0;
+
+                return (
+                  <View
+                    key={item.kode_profil || index}
+                    style={[
+                      styles.profileRowItem,
+                      isTop && styles.profileRowItemTop,
+                    ]}
+                  >
+                    <View style={styles.profileRowHeader}>
+                      <View style={styles.profileRowLeft}>
+                        <View style={[styles.rankBadge, isTop && styles.rankBadgeTop]}>
+                          <Text style={[styles.rankText, isTop && styles.rankTextTop]}>
+                            #{item.peringkat || index + 1}
+                          </Text>
+                        </View>
+                        <Text style={[styles.profileCodeName, isTop && styles.profileCodeNameTop]}>
+                          {item.kode_profil} – {item.nama_profil}
+                        </Text>
+                      </View>
+                      <Text style={[styles.profilePctText, isTop && styles.profilePctTextTop]}>
+                        {pct}%
+                      </Text>
+                    </View>
+
+                    {/* Progress Bar */}
+                    <View style={styles.barTrack}>
+                      <View
+                        style={[
+                          styles.barFill,
+                          { width: `${Math.max(5, Math.min(100, pct))}%` },
+                          isTop && styles.barFillTop,
+                        ]}
+                      />
+                    </View>
+
+                    {isTop && (
+                      <View style={styles.topMatchTag}>
+                        <Text style={styles.topMatchTagText}>★ Kecocokan Utama (100%)</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              });
+            })()}
           </View>
-        )}
+        </View>
       </ScrollView>
 
       {/* CTA bottom */}
@@ -210,7 +287,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 20,
   },
   ringWrap: {
     alignItems: 'center',
@@ -317,34 +394,111 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     flex: 1,
   },
-  otherProfiles: {
-    marginBottom: 20,
-  },
-  otherTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#9ca3af',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 8,
-  },
-  otherBadges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  otherBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 9999,
-    backgroundColor: '#f3f4f6',
+  allProfilesCard: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e5e7eb',
+    padding: 20,
+    marginBottom: 24,
   },
-  otherBadgeText: {
+  allProfilesTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  allProfilesSub: {
     fontSize: 12,
+    color: '#6b7280',
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  profilesList: {
+    gap: 12,
+  },
+  profileRowItem: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+  },
+  profileRowItemTop: {
+    borderColor: '#176236',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1.5,
+  },
+  profileRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  profileRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  rankBadge: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  rankBadgeTop: {
+    backgroundColor: '#176236',
+  },
+  rankText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#6b7280',
+  },
+  rankTextTop: {
+    color: '#fff',
+  },
+  profileCodeName: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#4b5563',
+    color: '#374151',
+    flex: 1,
+  },
+  profileCodeNameTop: {
+    fontWeight: '700',
+    color: '#176236',
+  },
+  profilePctText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#6b7280',
+  },
+  profilePctTextTop: {
+    color: '#176236',
+    fontSize: 15,
+  },
+  barTrack: {
+    height: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    backgroundColor: '#9ca3af',
+    borderRadius: 4,
+  },
+  barFillTop: {
+    backgroundColor: '#176236',
+  },
+  topMatchTag: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  topMatchTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#155c33',
+    letterSpacing: 0.5,
   },
   ctaWrap: {
     paddingHorizontal: 20,

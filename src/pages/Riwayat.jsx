@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ArrowLeft, Calendar, ChevronRight, RefreshCw } from 'lucide-react-native';
 import BottomNav from '../components/BottomNav';
 import { useAuth } from '../context/AuthContext';
-import { apiGetHistory, apiGetHistoryDetail } from '../utils/api';
+import { apiGetHistory, apiGetHistoryDetail, getRealProfileScore } from '../utils/api';
 
 function formatTanggal(isoString) {
   const d = new Date(isoString);
@@ -24,13 +24,34 @@ export default function Riwayat() {
   const [loading, setLoading] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(null); // consultation_id being loaded
   const [error, setError] = useState('');
+  const [sortBy, setSortBy] = useState('score'); // 'score' (persentase tertinggi) | 'date' (terbaru)
 
   const fetchHistory = async () => {
     setLoading(true);
     setError('');
     try {
       const res = await apiGetHistory(token);
-      setHistory(res.data.items || []);
+      const items = res.data.items || [];
+      const { apiGetHistoryDetail, calculateAnswerScore } = require('../utils/api');
+
+      // Fetch detail for each item to compute exact answer score (e.g. 87%)
+      const itemsWithDetails = await Promise.all(
+        items.map(async (item) => {
+          try {
+            const detailRes = await apiGetHistoryDetail(token, item.consultation_id);
+            const detail = detailRes.data;
+            const score = calculateAnswerScore(detail?.jawaban_raw);
+            return {
+              ...item,
+              ...detail,
+              calculated_score: score !== null ? score : item.persentase_utama,
+            };
+          } catch {
+            return item;
+          }
+        })
+      );
+      setHistory(itemsWithDetails);
     } catch (err) {
       setError(err.message || 'Gagal memuat riwayat.');
     } finally {
@@ -61,6 +82,7 @@ export default function Riwayat() {
           created_at: detail.created_at,
           final_profile: detail.final_profile,
           scores: detail.scores,
+          jawaban_raw: detail.jawaban_raw,
         },
       });
     } catch (err) {
@@ -69,6 +91,20 @@ export default function Riwayat() {
       setLoadingDetail(null);
     }
   };
+
+  // Sort history by real behavior score (100% P8 -> 70% P4 -> 7% P7) so 100% is never buried!
+  const sortedHistory = [...history].sort((a, b) => {
+    const scoreA = getRealProfileScore(a);
+    const scoreB = getRealProfileScore(b);
+
+    if (sortBy === 'score') {
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      // Secondary sort: date descending
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    } else {
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    }
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -104,34 +140,95 @@ export default function Riwayat() {
                 <Text style={styles.cardLabel}>TOTAL SESI</Text>
                 <Text style={styles.cardCount}>{history.length} Konsultasi</Text>
                 <Text style={styles.cardSub}>
-                  Perjalanan pertumbuhan akademismu tercatat di sini.
+                  Perjalanan pertumbuhan akademismu tercatat di sini. Peringkat teratas menunjukkan skor hasil murni tertinggi.
                 </Text>
+              </View>
+
+              {/* Sort Filter Bar */}
+              <View style={styles.filterRow}>
+                <Text style={styles.filterTitle}>URUTKAN BERDASARKAN:</Text>
+                <View style={styles.filterTabs}>
+                  <TouchableOpacity
+                    onPress={() => setSortBy('score')}
+                    style={[styles.filterTab, sortBy === 'score' && styles.filterTabActive]}
+                  >
+                    <Text style={[styles.filterTabText, sortBy === 'score' && styles.filterTabTextActive]}>
+                      ★ Skor Tertinggi
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setSortBy('date')}
+                    style={[styles.filterTab, sortBy === 'date' && styles.filterTabActive]}
+                  >
+                    <Text style={[styles.filterTabText, sortBy === 'date' && styles.filterTabTextActive]}>
+                      Terbaru
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* History List */}
               <View style={styles.list}>
-                {history.map((item) => (
-                  <TouchableOpacity
-                    key={item.consultation_id}
-                    style={styles.listItem}
-                    onPress={() => handleItemPress(item)}
-                    activeOpacity={0.8}
-                    disabled={loadingDetail === item.consultation_id}
-                  >
-                    <View style={styles.listItemLeft}>
-                      <Text style={styles.itemDate}>{formatTanggal(item.created_at)}</Text>
-                      <Text style={styles.itemName}>{item.nama_profil}</Text>
-                      <Text style={styles.itemPct}>
-                        {item.kode_profil} · {Math.round(item.persentase_utama)}%
-                      </Text>
-                    </View>
-                    {loadingDetail === item.consultation_id ? (
-                      <ActivityIndicator size="small" color="#176236" />
-                    ) : (
-                      <ChevronRight size={18} color="#9ca3af" />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                {sortedHistory.map((item, index) => {
+                  const pct = getRealProfileScore(item);
+                  const isTopScore = index === 0 && sortBy === 'score';
+                  const isHigh = pct >= 70;
+                  const isLow = pct < 40;
+
+                  return (
+                    <TouchableOpacity
+                      key={item.consultation_id}
+                      style={[
+                        styles.listItem,
+                        isTopScore && styles.listItemTopScore,
+                        isLow && !isTopScore && { borderColor: '#fee2e2' },
+                      ]}
+                      onPress={() => handleItemPress(item)}
+                      activeOpacity={0.8}
+                      disabled={loadingDetail === item.consultation_id}
+                    >
+                      <View style={styles.listItemLeft}>
+                        <View style={styles.itemBadgeRow}>
+                          <Text style={styles.itemDate}>{formatTanggal(item.created_at)}</Text>
+                          {isTopScore && (
+                            <View style={styles.topScoreBadge}>
+                              <Text style={styles.topScoreBadgeText}>★ PENCAPAIAN TERBAIK</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.itemName}>{item.nama_profil}</Text>
+                        <Text style={styles.itemPct}>
+                          {item.kode_profil} · {item.tingkat_urgensi || 'N/A'}
+                        </Text>
+                      </View>
+
+                      {/* Percentage Badge */}
+                      <View
+                        style={[
+                          styles.scoreBadgeWrap,
+                          isTopScore && styles.scoreBadgeWrapTop,
+                          isLow && !isTopScore && { backgroundColor: '#fef2f2' },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.scoreBadgeText,
+                            isTopScore && styles.scoreBadgeTextTop,
+                            isLow && !isTopScore && { color: '#ef4444' },
+                          ]}
+                        >
+                          {pct}%
+                        </Text>
+                      </View>
+
+                      {loadingDetail === item.consultation_id ? (
+                        <ActivityIndicator size="small" color="#176236" style={{ marginLeft: 8 }} />
+                      ) : (
+                        <ChevronRight size={18} color="#9ca3af" style={{ marginLeft: 4 }} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           ) : (
@@ -249,7 +346,42 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 12,
+    marginTop: 16,
+  },
+  filterRow: {
     marginTop: 20,
+    marginBottom: 4,
+  },
+  filterTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9ca3af',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  filterTabs: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  filterTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  filterTabActive: {
+    backgroundColor: '#176236',
+    borderColor: '#176236',
+  },
+  filterTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4b5563',
+  },
+  filterTabTextActive: {
+    color: '#fff',
   },
   listItem: {
     flexDirection: 'row',
@@ -266,9 +398,31 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
+  listItemTopScore: {
+    borderColor: '#176236',
+    borderWidth: 1.5,
+    backgroundColor: '#f0fdf4',
+  },
   listItemLeft: {
     gap: 4,
     flex: 1,
+  },
+  itemBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  topScoreBadge: {
+    backgroundColor: '#176236',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  topScoreBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   itemDate: {
     fontSize: 10,
@@ -285,6 +439,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#6b7280',
+  },
+  scoreBadgeWrap: {
+    backgroundColor: '#eaf5ee',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 54,
+  },
+  scoreBadgeWrapTop: {
+    backgroundColor: '#176236',
+  },
+  scoreBadgeText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#176236',
+  },
+  scoreBadgeTextTop: {
+    color: '#fff',
   },
   emptyCard: {
     backgroundColor: '#176236',

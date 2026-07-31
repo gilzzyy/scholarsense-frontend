@@ -11,20 +11,22 @@ import {
 import StatusBar from "../components/StatusBar";
 import BottomNav from "../components/BottomNav";
 import { useAuth } from "../context/AuthContext";
+import { getAvatarUrl } from "../utils/api";
 import profile from "../assets/Profile.png";
 import tw from "../utils/tw";
 
 export default function Profile() {
   const navigation = useNavigation();
-  const { user, logout } = useAuth();
+  const { user, logout, hasUnreadNotif } = useAuth();
 
-  const nama = user?.nama || "Andi Pratama";
-  const nim = user?.nim || "2201234567";
-  const email = user?.email || "andi.pratama@kampus.ac.id";
+  const nama = user?.nama_lengkap || user?.nama || "Mahasiswa";
+  const nim = user?.nim || "-";
+  const email = user?.email || "-";
+  const avatarUrl = getAvatarUrl(user?.foto_profil);
 
-  const handleLogout = () => {
-    logout();
-    navigation.navigate("Login");
+  const handleLogout = async () => {
+    await logout();
+    navigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
   };
 
   return (
@@ -47,7 +49,9 @@ export default function Profile() {
             >
               <Bell size={20} color={tw.color("gray-800")} />
               {/* Red dot indicator */}
-              <View style={tw`absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-red-500`} />
+              {hasUnreadNotif && (
+                <View style={tw`absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-red-500`} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -55,10 +59,17 @@ export default function Profile() {
         {/* Card */}
         <View style={tw`px-6 mt-6`}>
           <View style={tw`bg-white rounded-3xl p-6 items-center text-center shadow-sm`}>
-            <Image
-              source={profile}
-              style={tw`w-28 h-28 rounded-full`}
-            />
+            {avatarUrl ? (
+              <Image
+                source={{ uri: avatarUrl }}
+                style={tw`w-28 h-28 rounded-full border-2 border-white shadow-sm`}
+              />
+            ) : (
+              <Image
+                source={profile}
+                style={tw`w-28 h-28 rounded-full border-2 border-white shadow-sm`}
+              />
+            )}
 
             <Text style={tw`text-2xl font-bold mt-5 text-gray-900`}>{nama}</Text>
             <Text style={tw`text-gray-400 mt-1`}>NIM {nim}</Text>

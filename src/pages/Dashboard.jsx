@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Bell, Heart, MessageCircle, BarChart3, ChevronRight, LogOut } from 'lucide-react-native';
 import BottomNav from '../components/BottomNav';
 import { useAuth } from '../context/AuthContext';
-import { apiGetDashboard } from '../utils/api';
+import { apiGetDashboard, getAvatarUrl } from '../utils/api';
 
 const services = [
   {
@@ -25,8 +25,9 @@ const services = [
 
 export default function Dashboard() {
   const navigation = useNavigation();
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, hasUnreadNotif, checkUnreadNotif } = useAuth();
   const firstName = user?.nama_lengkap?.split(' ')[0] || 'Mahasiswa';
+  const avatarUrl = getAvatarUrl(user?.foto_profil);
 
   const [dashData, setDashData] = useState(null);
   const [loadingDash, setLoadingDash] = useState(true);
@@ -35,13 +36,37 @@ export default function Dashboard() {
     if (!token) return;
     try {
       const res = await apiGetDashboard(token);
-      setDashData(res.data);
+      let data = res.data;
+      if (data?.last_consultation?.consultation_id) {
+        try {
+          const { apiGetHistoryDetail, calculateAnswerScore } = require('../utils/api');
+          const detailRes = await apiGetHistoryDetail(token, data.last_consultation.consultation_id);
+          const detail = detailRes.data;
+          const score = calculateAnswerScore(detail?.jawaban_raw);
+          if (score !== null) {
+            data = {
+              ...data,
+              last_consultation: {
+                ...data.last_consultation,
+                ...detail,
+                calculated_score: score,
+              },
+            };
+          }
+        } catch {
+          // Silently ignore detail fetch errors
+        }
+      }
+      setDashData(data);
+      if (data?.last_consultation?.created_at) {
+        checkUnreadNotif(data.last_consultation.created_at);
+      }
     } catch {
       // Silently fail – use fallback content
     } finally {
       setLoadingDash(false);
     }
-  }, [token]);
+  }, [token, checkUnreadNotif]);
 
   // Refresh dashboard setiap kali layar difokuskan (misal setelah selesai konsultasi)
   useFocusEffect(
@@ -49,6 +74,31 @@ export default function Dashboard() {
       fetchDashboard();
     }, [fetchDashboard])
   );
+
+  const [loadingLastConsult, setLoadingLastConsult] = useState(false);
+
+  const handleLastConsultPress = async () => {
+    if (!dashData?.last_consultation?.consultation_id || !token || loadingLastConsult) return;
+    setLoadingLastConsult(true);
+    try {
+      const { apiGetHistoryDetail } = require('../utils/api');
+      const res = await apiGetHistoryDetail(token, dashData.last_consultation.consultation_id);
+      const detail = res.data;
+      navigation.navigate('Hasil', {
+        apiResult: {
+          consultation_id: detail.consultation_id,
+          created_at: detail.created_at,
+          final_profile: detail.final_profile,
+          scores: detail.scores,
+          jawaban_raw: detail.jawaban_raw,
+        },
+      });
+    } catch {
+      navigation.navigate('Riwayat');
+    } finally {
+      setLoadingLastConsult(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -69,15 +119,36 @@ export default function Dashboard() {
             <View style={styles.headerRow}>
               <View style={styles.headerLeft}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{firstName[0]}</Text>
+                  {avatarUrl ? (
+                    <Image source={{ uri: avatarUrl }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                  ) : (
+                    <Text style={styles.avatarText}>{firstName[0]}</Text>
+                  )}
                 </View>
                 <Text style={styles.headerBrand}>ScholarSense</Text>
               </View>
               <View style={styles.headerRight}>
-                <TouchableOpacity style={styles.bellBtn}>
+                <TouchableOpacity 
+                  style={[styles.bellBtn, { position: 'relative' }]} 
+                  onPress={() => navigation.navigate('Notifikasi')}
+                  activeOpacity={0.7}
+                >
                   <Bell size={18} color="#fff" />
+                  {hasUnreadNotif && (
+                    <View style={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      width: 8,
+                      height: 8,
+                      borderRadius: 4,
+                      backgroundColor: '#ef4444',
+                      borderWidth: 1,
+                      borderColor: '#155c33',
+                    }} />
+                  )}
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.bellBtn} onPress={handleLogout}>
+                <TouchableOpacity style={styles.bellBtn} onPress={handleLogout} activeOpacity={0.7}>
                   <LogOut size={18} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -105,17 +176,22 @@ export default function Dashboard() {
             {dashData?.last_consultation && (
               <TouchableOpacity
                 style={styles.lastConsultCard}
-                onPress={() =>
-                  navigation.navigate('Riwayat')
-                }
+                onPress={handleLastConsultPress}
                 activeOpacity={0.85}
+                disabled={loadingLastConsult}
               >
                 <View style={styles.lastConsultLeft}>
                   <Text style={styles.lastConsultLabel}>KONSULTASI TERAKHIR</Text>
                   <Text style={styles.lastConsultName}>{dashData.last_consultation.nama_profil}</Text>
                 </View>
                 <View style={styles.lastConsultBadge}>
-                  <Text style={styles.lastConsultPct}>{dashData.last_consultation.persentase_utama}%</Text>
+                  {loadingLastConsult ? (
+                    <ActivityIndicator size="small" color="#176236" />
+                  ) : (
+                    <Text style={styles.lastConsultPct}>
+                      {require('../utils/api').getRealProfileScore(dashData.last_consultation)}%
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
             )}
